@@ -2,7 +2,9 @@ package main
 
 import (
 	"container/heap"
+	"fmt"
 	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/tinode/chat/server/auth"
@@ -183,6 +185,9 @@ func replyCreateUser(s *Session, msg *ClientComMessage, rec *auth.Rec) {
 			logs.Warn.Println("create user: failed to link avatar attachment", err, "sid=", s.sid)
 			// This is not a critical error, continue execution.
 		}
+	}
+	if relevantTags := filterRestrictedTags(user.Tags, globals.topicByTagsField); relevantTags != nil {
+		subscribeTopicsByTag(s, user, relevantTags)
 	}
 
 	var reply *ServerComMessage
@@ -920,6 +925,58 @@ func usersRequestFromCluster(req *UserCacheReq) {
 	select {
 	case globals.usersUpdate <- req:
 	default:
+	}
+}
+
+func isValidDiagnosysTag(tagName string) bool {
+	_, err := types.GetDiagnosys(tagName)
+	return err == nil
+}
+
+func isValidAddressTag(tagName string) bool {
+	_, err := types.GetAddress(tagName)
+	return err == nil
+}
+
+func getValidityTags(tags []string) []string {
+	out := []string{}
+	for _, tag := range tags {
+		splitTag := strings.Split(tag, ":")
+		if len(splitTag) != 2 {
+			continue
+		}
+		switch strings.ToLower(splitTag[0]) {
+		case "diagnosys":
+			if isValidDiagnosysTag(splitTag[1]) {
+				out = append(out, splitTag[1])
+			}
+		case "address":
+			if isValidAddressTag(splitTag[1]) {
+				out = append(out, splitTag[1])
+			}
+		}
+	}
+	return out
+}
+
+func subscribeTopicsByTag(s *Session, user types.User, tags []string) {
+	tagsName := getValidityTags(tags)
+	subTopics, err := store.Topics.GetTopicsByTagsName(tagsName)
+	if err != nil {
+		logs.Err.Println("cannot get sub topic: ", err.Error())
+		return
+	}
+	subRelevantTopics(s, subTopics, user)
+}
+
+func subRelevantTopics(s *Session, subTopics []types.Subscription, user types.User) {
+	for _, sub := range subTopics {
+		sub.ModeWant = user.Access.Auth
+		sub.ModeGiven = user.Access.Auth
+		sub.User = fmt.Sprint(user.Uid())
+		if err := store.Subs.Create(&sub); err != nil {
+			logs.Err.Println("cannot sub topic: ", sub.Topic, ". err: ", err.Error())
+		}
 	}
 }
 

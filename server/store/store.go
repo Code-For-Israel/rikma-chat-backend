@@ -512,6 +512,7 @@ type TopicsPersistenceInterface interface {
 	Create(topic *types.Topic, owner types.Uid, private interface{}) error
 	CreateP2P(initiator, invited *types.Subscription) error
 	Get(topic string) (*types.Topic, error)
+	GetTopicsByTagsName(tagsName []string) ([]types.Subscription, error)
 	GetUsers(topic string, opts *types.QueryOpt) ([]types.Subscription, error)
 	GetUsersAny(topic string, opts *types.QueryOpt) ([]types.Subscription, error)
 	GetSubs(topic string, opts *types.QueryOpt) ([]types.Subscription, error)
@@ -565,6 +566,11 @@ func (topicsMapper) CreateP2P(initiator, invited *types.Subscription) error {
 // Get a single topic with a list of relevant users de-normalized into it
 func (topicsMapper) Get(topic string) (*types.Topic, error) {
 	return adp.TopicGet(topic)
+}
+
+// GetTopicsByTagsName load a list of subscriptions topics copied to subscription.
+func (topicsMapper) GetTopicsByTagsName(tagsName []string) ([]types.Subscription, error) {
+	return adp.FindTopics([][]string{}, tagsName, true)
 }
 
 // GetUsers loads subscriptions for topic plus loads user.Public+Trusted.

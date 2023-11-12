@@ -177,6 +177,8 @@ var globals struct {
 	maxSubscriberCount int
 	// Maximum number of indexable tags.
 	maxTagCount int
+	// Tags according to which they can automatically connect to the topic group.
+	topicByTagsField map[string]bool
 	// If true, ordinary users cannot delete their accounts.
 	permanentAccounts bool
 
@@ -277,6 +279,8 @@ type configType struct {
 	MaskedTagNamespaces []string `json:"masked_tags"`
 	// Maximum number of indexable tags.
 	MaxTagCount int `json:"max_tag_count"`
+	// sub topic by tags field
+	TopicByTagsField map[string]bool `json:"topicByTagsField"`
 	// If true, ordinary users cannot delete their accounts.
 	PermanentAccounts bool `json:"permanent_accounts"`
 	// URL path for exposing runtime stats. Disabled if the path is blank.
@@ -547,6 +551,8 @@ func main() {
 	if globals.maxTagCount <= 0 {
 		globals.maxTagCount = defaultMaxTagCount
 	}
+
+	globals.topicByTagsField = config.TopicByTagsField
 	// If account deletion is disabled.
 	globals.permanentAccounts = config.PermanentAccounts
 

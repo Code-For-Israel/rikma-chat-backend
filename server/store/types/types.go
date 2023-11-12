@@ -502,8 +502,34 @@ const (
 	EatingDisorders
 	Ocd
 	DoubleMorbidity
-	other
+	Other
 )
+
+// GetDiagnosys given diagnosys name returns Diagnosys category.
+func GetDiagnosys(diagnosys string) (Diagnosys, error) {
+	switch strings.ToLower(diagnosys) {
+	case "depression":
+		return Depression, nil
+	case "anxieties":
+		return Anxieties, nil
+	case "manicdepression":
+		return ManicDepression, nil
+	case "borderlinepersonality":
+		return BorderlinePersonality, nil
+	case "schizophrenia":
+		return Schizophrenia, nil
+	case "eatingdisorders":
+		return EatingDisorders, nil
+	case "ocd":
+		return Ocd, nil
+	case "doublemorbidity":
+		return DoubleMorbidity, nil
+	case "others":
+		return Other, nil
+	default:
+		return 0, errors.New("invalid diagnosys type for name '" + diagnosys + "'")
+	}
+}
 
 type Address int
 
@@ -517,6 +543,30 @@ const (
 	JudeaSamariaAndJordanValley
 	South
 )
+
+// GetAddress given address name returns Address category.
+func GetAddress(address string) (Address, error) {
+	switch strings.ToLower(address) {
+	case "north":
+		return North, nil
+	case "haderazichronandthevalleys":
+		return HaderaZichronAndTheValleys, nil
+	case "sharon":
+		return Sharon, nil
+	case "center":
+		return Center, nil
+	case "jerusalemarea":
+		return JerusalemArea, nil
+	case "shfellaandmishorhachofsouth":
+		return ShfellaAndMishorHachofSouth, nil
+	case "judeasamariaandjordanvalley":
+		return JudeaSamariaAndJordanValley, nil
+	case "south":
+		return South, nil
+	default:
+		return 0, errors.New("invalid address type for name '" + address + "'")
+	}
+}
 
 // User is a representation of a DB-stored user record.
 type User struct {
