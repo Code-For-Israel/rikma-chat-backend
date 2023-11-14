@@ -505,6 +505,31 @@ const (
 	Other
 )
 
+func (diagnosys Diagnosys) String() (string, error) {
+	switch diagnosys {
+	case Depression:
+		return "Depression", nil
+	case Anxieties:
+		return "Anxieties", nil
+	case ManicDepression:
+		return "ManicDepression", nil
+	case BorderlinePersonality:
+		return "BorderlinePersonality", nil
+	case Schizophrenia:
+		return "Schizophrenia", nil
+	case EatingDisorders:
+		return "EatingDisorders", nil
+	case Ocd:
+		return "Ocd", nil
+	case DoubleMorbidity:
+		return "DoubleMorbidity", nil
+	case Other:
+		return "Other", nil
+	default:
+		return "", errors.New("invalid diagnosys type")
+	}
+}
+
 // GetDiagnosys given diagnosys name returns Diagnosys category.
 func GetDiagnosys(diagnosys string) (Diagnosys, error) {
 	switch strings.ToLower(diagnosys) {
@@ -543,6 +568,29 @@ const (
 	JudeaSamariaAndJordanValley
 	South
 )
+
+func (address Address) String() (string, error) {
+	switch address {
+	case North:
+		return "North", nil
+	case HaderaZichronAndTheValleys:
+		return "HaderaZichronAndTheValleys", nil
+	case Sharon:
+		return "Sharon", nil
+	case Center:
+		return "Center", nil
+	case JerusalemArea:
+		return "JerusalemArea", nil
+	case ShfellaAndMishorHachofSouth:
+		return "ShfellaAndMishorHachofSouth", nil
+	case JudeaSamariaAndJordanValley:
+		return "JudeaSamariaAndJordanValley", nil
+	case South:
+		return "South", nil
+	default:
+		return "", errors.New("invalid diagnosys type")
+	}
+}
 
 // GetAddress given address name returns Address category.
 func GetAddress(address string) (Address, error) {
