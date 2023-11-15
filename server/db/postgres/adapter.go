@@ -647,6 +647,7 @@ func (a *adapter) UpgradeDb() error {
 	return nil
 }
 
+// create initial groups topic by address and diagnosys enums.
 func createInitialGroupTopics(a *adapter, ctx context.Context) error {
 	sqlStringTopics, topictags := createSqlStringForTopicsEnum()
 	_, errTopics := a.db.Exec(ctx, sqlStringTopics)
@@ -676,6 +677,7 @@ func createSqlStringForTopicsEnum() (string, map[string]string) {
 	return sqlStringTopics, topicTags
 }
 
+// get address enum in string array
 func getAdressesNames() []string {
 	out := []string{}
 	for enumItem := t.North; enumItem <= t.South; enumItem++ {
@@ -687,6 +689,7 @@ func getAdressesNames() []string {
 	return out
 }
 
+// get diagnosys enum in string array (without Other obj)
 func getDiagnosysNames() []string {
 	out := []string{}
 	for enumItem := t.Depression; enumItem < t.Other; enumItem++ {

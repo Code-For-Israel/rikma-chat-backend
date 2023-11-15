@@ -41,7 +41,7 @@ const (
 	defaultHost     = "localhost:27017"
 	defaultDatabase = "tinode"
 
-	adpVersion  = 113
+	adpVersion = 114
 	adapterName = "mongodb"
 
 	defaultMaxResults = 1024
@@ -531,6 +531,18 @@ func (a *adapter) UpgradeDb() error {
 		}
 	}
 
+	// Perform database upgrade from version 113 to version 114.
+	if a.version == 113 {
+		// Create initial group topics for address and diagnosys.
+		if err := createInitialGroupTopics(a); err != nil {
+			return err
+		}
+
+		if err := bumpVersion(a, 114); err != nil {
+			return err
+		}
+	}
+
 	if a.version != adpVersion {
 		return errors.New("Failed to perform database upgrade to version " + strconv.Itoa(adpVersion) +
 			". DB is still at " + strconv.Itoa(a.version))
@@ -545,6 +557,57 @@ func (a *adapter) updateDbVersion(v int) error {
 		b.M{"$set": b.M{"value": v}},
 	)
 	return err
+}
+
+// create initial groups topic by address and diagnosys enums.
+func createInitialGroupTopics(a *adapter) error {
+	topicsName := append(getAdressesNames(), getDiagnosysNames()...)
+	topics := getTopicsObjectFromTopicsNames(topicsName)
+	_, errTopics := a.db.Collection("topics").InsertMany(a.ctx, &topics)
+	return errTopics
+}
+
+func getTopicsObjectFromTopicsNames(topicsName []string) ([]t.Topic) {
+	topics := []t.Topic{}
+	now := t.TimeNow()
+	for _, topicName := range topicsName {
+		genTopicName := "grp" + store.Store.GetUidString()
+		topics = append(topics, &t.Topic{
+			ObjHeader: t.ObjHeader{
+				Id:        genTopicName,
+				CreatedAt: now,
+				UpdatedAt: now, }
+			TouchedAt: now,
+			Access:    t.DefaultAccess{Auth: t.ModeCPublic, Anon: t.ModeCReadOnly},
+			Public:    map[string]interface{}{"fn": "\"" + topicName + "\""},
+			Tags: []string{topicName}
+		})
+	}
+	return topics
+}
+
+// get address enum in string array.
+func getAdressesNames() []string {
+	out := []string{}
+	for enumItem := t.North; enumItem <= t.South; enumItem++ {
+		nameItem, err := enumItem.String()
+		if err == nil {
+			out = append(out, nameItem)
+		}
+	}
+	return out
+}
+
+// get diagnosys enum in string array (without Other obj).
+func getDiagnosysNames() []string {
+	out := []string{}
+	for enumItem := t.Depression; enumItem < t.Other; enumItem++ {
+		nameItem, err := enumItem.String()
+		if err == nil {
+			out = append(out, nameItem)
+		}
+	}
+	return out
 }
 
 // Create system topic 'sys'.

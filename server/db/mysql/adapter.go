@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"hash/fnv"
 	"net/url"
 	"strconv"
@@ -44,7 +45,7 @@ const (
 	defaultDSN      = "root:@tcp(localhost:3306)/tinode?parseTime=true"
 	defaultDatabase = "tinode"
 
-	adpVersion = 113
+	adpVersion = 114
 
 	adapterName = "mysql"
 
@@ -776,11 +777,86 @@ func (a *adapter) UpgradeDb() error {
 		}
 	}
 
+	// Perform database upgrade from version 113 to version 114.
+	if a.version == 113 {
+		// Create initial group topics for address and diagnosys.
+		if err := createInitialGroupTopics(a, ctx); err != nil {
+			return err
+		}
+
+		if err := bumpVersion(a, 114); err != nil {
+			return err
+		}
+	}
+
 	if a.version != adpVersion {
 		return errors.New("Failed to perform database upgrade to version " + strconv.Itoa(adpVersion) +
 			". DB is still at " + strconv.Itoa(a.version))
 	}
 	return nil
+}
+
+// create initial groups topic by address and diagnosys enums.
+func createInitialGroupTopics(a *adapter, ctx context.Context) error {
+	sqlStringTopics, topictags := createSqlStringForTopicsEnum()
+	_, errTopics := a.db.Exec(ctx, sqlStringTopics)
+	if errTopics == nil {
+		sqlStringTopicTags := getSqlStringToaddTagsforMultipleTopics("topicTags", "topic", topictags)
+		_, errTopicTags := a.db.Exec(ctx, sqlStringTopicTags)
+		return errTopicTags
+	}
+	return errTopics
+}
+
+func createSqlStringForTopicsEnum() (string, map[string]string) {
+	topicsName := append(getAdressesNames(), getDiagnosysNames()...)
+	topicTags := map[string]string{}
+	now := t.TimeNow().Format("2006-01-02 15:04:05")
+
+	sqlStringTopics := `INSERT INTO topics(createdat,updatedat,state,touchedat,name,access,public)
+					VALUES `
+	for _, topicName := range topicsName {
+		genTopicName := "grp" + store.Store.GetUidString()
+		topicTags[genTopicName] = topicName
+		sqlStringTopics = sqlStringTopics + fmt.Sprintf(`('%s','%v',%d,'%v','%s','{"Auth": "JRWP","Anon": "JR"}','{"fn": "%s"}'),`,
+			now, now, t.StateOK, now, genTopicName, topicName)
+	}
+
+	sqlStringTopics = sqlStringTopics[:len(sqlStringTopics)-1]
+	return sqlStringTopics, topicTags
+}
+
+// get address enum in string array
+func getAdressesNames() []string {
+	out := []string{}
+	for enumItem := t.North; enumItem <= t.South; enumItem++ {
+		nameItem, err := enumItem.String()
+		if err == nil {
+			out = append(out, nameItem)
+		}
+	}
+	return out
+}
+
+// get diagnosys enum in string array (without Other obj)
+func getDiagnosysNames() []string {
+	out := []string{}
+	for enumItem := t.Depression; enumItem < t.Other; enumItem++ {
+		nameItem, err := enumItem.String()
+		if err == nil {
+			out = append(out, nameItem)
+		}
+	}
+	return out
+}
+
+func getSqlStringToaddTagsforMultipleTopics(table string, keyName string, tags map[string]string) string {
+	sql := fmt.Sprintf("INSERT INTO %s (%s, tag) VALUES ", table, keyName)
+	for topicName, tag := range tags {
+		sql = sql + fmt.Sprintf("('%s','%s'),", topicName, tag)
+	}
+	sql = sql[:len(sql)-1]
+	return sql
 }
 
 func createSystemTopic(tx *sql.Tx) error {
